@@ -48,13 +48,17 @@ namespace Farm
                     }
                     Console.WriteLine("First frame is " + firstFrame.ToString());
                     Console.WriteLine("Last frame is " + lastFrame.ToString());
+                    if (lastFrame == 0)
+                    {
+                        Console.WriteLine("No animation in INI.");
+                        return true;
+                    }
                     Console.WriteLine("Picking a random frame...");
                     int[] frames = new int[lastFrame - firstFrame + 1];
                     for (int i = firstFrame; i <= lastFrame; i++)
                     {
                         frames[i - firstFrame] = i;
                     }
-                    Random rnd = new Random();
                     int[] randomFrames = frames.OrderBy(x => rnd.Next()).ToArray();
                     // The filenames are padded to fill out to the last frame
                     int padding = lastFrame.ToString().Length;

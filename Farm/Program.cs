@@ -32,7 +32,8 @@ namespace Farm
             if (inis.Count() > 0)
             {
                 // Pick a random one
-                int selectIni = 0;
+                Random rnd = new Random();
+                int selectIni = rnd.Next(inis.Count());
                 FileInfo iniFile = inis.ElementAt(selectIni);
                 Console.WriteLine("Found " + iniFile.FullName);
                 using (StreamReader getLines = new StreamReader(iniFile.FullName))

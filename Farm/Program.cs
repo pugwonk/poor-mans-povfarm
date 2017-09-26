@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,23 +11,23 @@ namespace Farm
 {
     class Program
     {
-        static Timer ping;
         static void Main(string[] args)
         {
             // Check every so often for new files
-            ping = new Timer(1000);
-            ping.Elapsed += Ping_Elapsed;
-            ping.Enabled = true;
             Console.WriteLine("Press a key to exit.");
-            Console.ReadKey();
+            bool done = false;
+            do
+            {
+                done = checkFiles();
+                System.Threading.Thread.Sleep(1000);
+            } while ((!Console.KeyAvailable) && (!done));
         }
 
-        private static void Ping_Elapsed(object sender, ElapsedEventArgs e)
+        private static bool checkFiles()
         {
             int firstFrame = 0;
             int lastFrame = 0;
 
-            ping.Enabled = false;
             var dir = new DirectoryInfo(".");
             var inis = dir.EnumerateFiles("*.ini");
             if (inis.Count() > 0)
@@ -70,10 +71,39 @@ namespace Farm
                         }
                     }
                     if (doingFrame == 0)
+                    {
                         Console.WriteLine("All frames drawn.");
+                        return true;
+                    }
+                    else
+                    {
+                        if (lockWorks(doingFrame))
+                        {
+                            // Go ahead and render
+                            ProcessStartInfo cmdsi = new ProcessStartInfo(@"\Program Files\POV-Ray\v3.7\bin\pvengine.exe");
+                            cmdsi.Arguments = '"' + iniFile.FullName + "\" /exit -sf" + doingFrame.ToString() + " -ef" + doingFrame.ToString();
+                            Process cmd = Process.Start(cmdsi);
+                            cmd.WaitForExit();
+                            System.Threading.Thread.Sleep(5000); // for dropbox sync
+                            File.Delete(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to get a lock on frame");
+                        }
+                    }
                 }
             }
-            ping.Enabled = true;
+            return false;
+        }
+
+        private static bool lockWorks(int doingFrame)
+        {
+            File.Create(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock").Close();
+            System.Threading.Thread.Sleep(5000);
+            var dir = new DirectoryInfo(".");
+            var locks = dir.EnumerateFiles(doingFrame.ToString() + "_*.lock");
+            return locks.Count() == 1;
         }
     }
 }

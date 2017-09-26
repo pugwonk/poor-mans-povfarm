@@ -34,11 +34,25 @@ namespace Farm
         {
             // Check every so often for new files
             Console.WriteLine("Press a key to exit.");
+            deleteOldLocks();
             do
             {
                 checkFiles();
                 System.Threading.Thread.Sleep(1000);
             } while (!Console.KeyAvailable);
+        }
+
+        private static void deleteOldLocks()
+        {
+            var dir = new DirectoryInfo(".");
+            var locks = dir.EnumerateFiles("*_" + System.Environment.MachineName + ".lock");
+            if (locks.Count() > 0)
+            {
+                Console.WriteLine("Deleting some old lock files");
+                foreach (var lockf in locks) {
+                    lockf.Delete();
+                }
+            }
         }
 
         private static bool checkFiles()

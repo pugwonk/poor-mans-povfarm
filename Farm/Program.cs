@@ -15,12 +15,11 @@ namespace Farm
         {
             // Check every so often for new files
             Console.WriteLine("Press a key to exit.");
-            bool done = false;
             do
             {
-                done = checkFiles();
+                checkFiles();
                 System.Threading.Thread.Sleep(1000);
-            } while ((!Console.KeyAvailable) && (!done));
+            } while (!Console.KeyAvailable);
         }
 
         private static bool checkFiles()

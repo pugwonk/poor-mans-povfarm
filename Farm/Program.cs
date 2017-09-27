@@ -144,7 +144,7 @@ namespace Farm
                         if (lockWorks(doingFrame))
                         {
                             // Go ahead and render
-                            ProcessStartInfo cmdsi = new ProcessStartInfo(@"\Program Files\POV-Ray\v3.7\bin\pvengine.exe");
+                            ProcessStartInfo cmdsi = new ProcessStartInfo(@"c:\Program Files\POV-Ray\v3.7\bin\pvengine.exe");
                             cmdsi.Arguments = '"' + iniFile.FullName + "\" /exit -sf" + doingFrame.ToString() + " -ef" + doingFrame.ToString();
                             Process cmd = Process.Start(cmdsi);
                             cmd.WaitForExit();

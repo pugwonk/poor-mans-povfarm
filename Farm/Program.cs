@@ -149,12 +149,12 @@ namespace Farm
                             Process cmd = Process.Start(cmdsi);
                             cmd.WaitForExit();
                             System.Threading.Thread.Sleep(5000); // for dropbox sync
-                            File.Delete(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock");
                         }
                         else
                         {
                             Console.WriteLine("Failed to get a lock on frame");
                         }
+                        File.Delete(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock");
                     }
                 }
             }
@@ -163,11 +163,18 @@ namespace Farm
 
         private static bool lockWorks(int doingFrame)
         {
-            File.Create(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock").Close();
-            System.Threading.Thread.Sleep(5000);
+            // Is it locked right now?
             var dir = new DirectoryInfo(".");
             var locks = dir.EnumerateFiles(doingFrame.ToString() + "_*.lock");
-            return locks.Count() == 1;
+            if (locks.Count() != 0)
+                return false;
+            else
+            {
+                // There isn't a lock - try making one and see if it's the only one that got made
+                File.Create(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock").Close();
+                System.Threading.Thread.Sleep(5000);
+                return locks.Count() == 1;
+            }
         }
     }
 }

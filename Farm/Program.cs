@@ -33,7 +33,7 @@ namespace Farm
         static void Main(string[] args)
         {
             // Check every so often for new files
-            Console.WriteLine("Press a key to exit.");
+            Console.WriteLine("Press a key to exit (after current frame is rendered).");
             deleteOldLocks();
             do
             {
@@ -133,13 +133,15 @@ namespace Farm
                         if (doneFrames > 1)
                         {
                             TimeSpan tookSoFar = lastFrameAt - firstFrameAt;
-                            int totFrames = lastFrame - firstFrame;
+                            int totFrames = lastFrame - firstFrame + 1;
                             // Because this only takes creation time, it doesn't account for the time the
-                            // first frame took to draw, hence the doneFrames -1. Although who knows if that's
+                            // first frame took to draw, hence the doneFrames +1. Although who knows if that's
                             // the right way to do this
-                            TimeSpan timeLeft = TimeSpan.FromTicks((long)(tookSoFar.Ticks * ((double)(doneFrames - 1) / totFrames)));
+                            TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
+                            TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
                             DateTime eta = DateTime.Now + timeLeft;
-                            Console.WriteLine("Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar) + ". ETA is " + eta.ToString());
+                            Console.WriteLine("Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
+                            Console.WriteLine("Time per frame: " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
                         }
                         if (lockWorks(doingFrame))
                         {

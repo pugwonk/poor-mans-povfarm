@@ -30,10 +30,15 @@ namespace Farm
             return formatted;
         }
 
+        static void log(string msg)
+        {
+            Console.WriteLine(DateTime.Now.ToShortTimeString() + " " + msg);
+        }
+
         static void Main(string[] args)
         {
             // Check every so often for new files
-            Console.WriteLine("Press a key to exit (after current frame is rendered).");
+            log("Press a key to exit (after current frame is rendered).");
             deleteOldLocks();
             do
             {
@@ -48,7 +53,7 @@ namespace Farm
             var locks = dir.EnumerateFiles("*_" + System.Environment.MachineName + ".lock");
             if (locks.Count() > 0)
             {
-                Console.WriteLine("Deleting some old lock files");
+                log("Deleting some old lock files");
                 foreach (var lockf in locks) {
                     lockf.Delete();
                 }
@@ -68,7 +73,7 @@ namespace Farm
                 Random rnd = new Random();
                 int selectIni = rnd.Next(inis.Count());
                 FileInfo iniFile = inis.ElementAt(selectIni);
-                Console.WriteLine("Found " + iniFile.FullName);
+                log("Found " + iniFile.Name);
                 using (StreamReader getLines = new StreamReader(iniFile.FullName))
                 {
                     string line;
@@ -79,14 +84,14 @@ namespace Farm
                         if (line.StartsWith("Initial_Frame="))
                             firstFrame = int.Parse(line.Substring("Initial_Frame=".Length));
                     }
-                    //Console.WriteLine("First frame is " + firstFrame.ToString());
-                    //Console.WriteLine("Last frame is " + lastFrame.ToString());
+                    //log("First frame is " + firstFrame.ToString());
+                    //log("Last frame is " + lastFrame.ToString());
                     if (lastFrame == 0)
                     {
-                        Console.WriteLine("No animation in INI.");
+                        log("No animation in INI.");
                         return true;
                     }
-                    //Console.WriteLine("Picking a random frame...");
+                    //log("Picking a random frame...");
                     int[] frames = new int[lastFrame - firstFrame + 1];
                     for (int i = firstFrame; i <= lastFrame; i++)
                     {
@@ -117,14 +122,14 @@ namespace Farm
                         {
                             if (doingFrame == 0) // haven't already picked one
                             {
-                                Console.WriteLine("Found undrawn frame at " + imgFile);
                                 doingFrame = fn;
+                                log("Found undrawn frame " + doingFrame.ToString());
                             }
                         }
                     }
                     if (doingFrame == 0)
                     {
-                        Console.WriteLine("All frames drawn.");
+                        log("All frames drawn.");
                         return true;
                     }
                     else
@@ -140,8 +145,8 @@ namespace Farm
                             TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
                             TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
                             DateTime eta = DateTime.Now + timeLeft;
-                            Console.WriteLine("Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
-                            Console.WriteLine("Time per frame: " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
+                            log("Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
+                            log("Time per frame: " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
                         }
                         if (lockWorks(doingFrame))
                         {
@@ -154,7 +159,7 @@ namespace Farm
                         }
                         else
                         {
-                            Console.WriteLine("Failed to get a lock on frame");
+                            log("Failed to get a lock on frame");
                         }
                         File.Delete(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock");
                     }

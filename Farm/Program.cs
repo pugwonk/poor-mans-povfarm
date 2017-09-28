@@ -189,24 +189,25 @@ namespace Farm
                     }
                     else
                     {
-                        // Calculate EA
-                        if (doneFrames > 1)
-                        {
-                            TimeSpan tookSoFar = lastFrameAt - firstFrameAt;
-                            int totFrames = lastFrame - firstFrame + 1;
-                            // Because this only takes creation time, it doesn't account for the time the
-                            // first frame took to draw, hence the doneFrames +1. Although who knows if that's
-                            // the right way to do this
-                            TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
-                            TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
-                            DateTime eta = DateTime.Now + timeLeft;
-                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
-                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Time per frame " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
-                        }
                         string lockFile = doingFrame.ToString() + "_" + System.Environment.MachineName + "_" + Path.GetFileNameWithoutExtension(iniFile.FullName) + ".lock";
                         string lockFileWild = doingFrame.ToString() + "_*_" + Path.GetFileNameWithoutExtension(iniFile.FullName) + ".lock";
                         if (lockWorks(doingFrame, lockFile, lockFileWild))
                         {
+                            // Calculate EA
+                            if (doneFrames > 1)
+                            {
+                                TimeSpan tookSoFar = lastFrameAt - firstFrameAt;
+                                int totFrames = lastFrame - firstFrame + 1;
+                                // Because this only takes creation time, it doesn't account for the time the
+                                // first frame took to draw, hence the doneFrames +1. Although who knows if that's
+                                // the right way to do this
+                                TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
+                                TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
+                                DateTime eta = DateTime.Now + timeLeft;
+                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
+                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Time per frame " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
+                            }
+
                             // Go ahead and render
                             DateTime startTime = DateTime.Now;
                             sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": " + System.Environment.MachineName + " starting frame " + doingFrame.ToString());

@@ -206,6 +206,7 @@ namespace Farm
                             sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": " + System.Environment.MachineName + " starting frame " + doingFrame.ToString());
                             ProcessStartInfo cmdsi = new ProcessStartInfo(@"c:\Program Files\POV-Ray\v3.7\bin\pvengine.exe");
                             cmdsi.Arguments = '"' + iniFile.FullName + "\" /exit -sf" + doingFrame.ToString() + " -ef" + doingFrame.ToString();
+                            log("Executing pvengine.exe " + cmdsi.Arguments);
                             Process cmd = Process.Start(cmdsi);
                             cmd.WaitForExit();
                             TimeSpan took = DateTime.Now - startTime;
@@ -229,12 +230,18 @@ namespace Farm
             var dir = new DirectoryInfo(".");
             var locks = dir.EnumerateFiles(lockFileWild);
             if (locks.Count() != 0)
+            {
+                log("Frame " + doingFrame.ToString() + " already in progress (try #1)");
                 return false;
+            }
             else
             {
                 // There isn't a lock - try making one and see if it's the only one that got made
                 File.Create(lockFile).Close();
                 System.Threading.Thread.Sleep(5000);
+                locks = dir.EnumerateFiles(lockFileWild);
+                if (locks.Count() != 1)
+                    log("Frame " + doingFrame.ToString() + " already in progress (try #2)");
                 return locks.Count() == 1;
             }
         }

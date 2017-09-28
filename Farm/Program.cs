@@ -44,7 +44,11 @@ namespace Farm
         {
             using (StreamWriter sw = File.AppendText(logFile))
             {
-                sw.WriteLine(DateTime.Now.ToShortTimeString() + " " + msg);
+                try
+                {
+                    sw.WriteLine(DateTime.Now.ToShortTimeString() + " " + msg);
+                }
+                catch { }
             }
         }
 
@@ -71,48 +75,49 @@ namespace Farm
 
         private static void CLog_Elapsed(object sender, ElapsedEventArgs e)
         {
-            //Console.WriteLine("Processing global log");
+            deleteFiles("*conflicted copy*.*"); // don't care much about dropbox conflicts
+            //deleteFiles("*.pov-state"); // these just kinda pile up and annoy dropbox
             if (File.Exists(logFile))
             {
-                //Console.WriteLine("- File exists");
                 string nextLogFile = File.ReadAllText(logFile);
-                if (lastLogFile != "")
+                if (nextLogFile != lastLogFile)
                 {
-                    //Console.WriteLine("- Prev iteration exists");
-                    if (nextLogFile != lastLogFile)
+                    // Only spew out the new bits if this one is bigger than the last one
+                    // in case it got deleted
+                    if (nextLogFile.Length < lastLogFile.Length)
                     {
-                        // Only spew out the new bits if this one is bigger than the last one
-                        // in case it got deleted
-                        if (nextLogFile.Length < lastLogFile.Length)
-                        {
-                            log("Ignoring smaller-than-previous logfile");
-                            lastLogFile = "";
-                        }
-                        string newBits = nextLogFile.Substring(lastLogFile.Length);
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        foreach (string line in newBits.Split("\r\n".ToCharArray()))
-                        {
-                            if (line.Trim() != "")
-                                Console.WriteLine(line);
-                        }
-                        Console.ResetColor();
+                        log("Ignoring smaller-than-previous logfile");
+                        lastLogFile = "";
                     }
+                    string newBits = nextLogFile.Substring(lastLogFile.Length);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    foreach (string line in newBits.Split("\r\n".ToCharArray()))
+                    {
+                        if (line.Trim() != "")
+                            Console.WriteLine(line);
+                    }
+                    Console.ResetColor();
                 }
                 lastLogFile = nextLogFile;
+            }   
+        }
+
+        private static void deleteFiles(string fSpec)
+        {
+            var dir = new DirectoryInfo(".");
+            var locks = dir.EnumerateFiles(fSpec);
+            if (locks.Count() > 0)
+            {
+                foreach (var lockf in locks)
+                {
+                    lockf.Delete();
+                }
             }
         }
 
         private static void deleteOldLocks()
         {
-            var dir = new DirectoryInfo(".");
-            var locks = dir.EnumerateFiles("*_" + System.Environment.MachineName + "_*.lock");
-            if (locks.Count() > 0)
-            {
-                log("Deleting some old lock files");
-                foreach (var lockf in locks) {
-                    lockf.Delete();
-                }
-            }
+            deleteFiles("*_" + System.Environment.MachineName + "_*.lock");
         }
 
         private static bool checkFiles()
@@ -204,8 +209,8 @@ namespace Farm
                                 TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
                                 TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
                                 DateTime eta = DateTime.Now + timeLeft;
-                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
-                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Time per frame " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
+                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ":   Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
+                                sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ":   Time per frame " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
                             }
 
                             // Go ahead and render

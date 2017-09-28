@@ -11,6 +11,8 @@ namespace Farm
 {
     class Program
     {
+        static string lastLogFile = "";
+        const string logFile = "farm.log";
         // https://stackoverflow.com/questions/842057/how-do-i-convert-a-timespan-to-a-formatted-string
         static string ToReadableAgeString(TimeSpan span)
         {
@@ -25,32 +27,79 @@ namespace Farm
 
             if (formatted.EndsWith(", ")) formatted = formatted.Substring(0, formatted.Length - 2);
 
-            if (string.IsNullOrEmpty(formatted)) formatted = "0 seconds";
+            if (string.IsNullOrEmpty(formatted)) formatted = "0 minutes";
 
             return formatted;
         }
 
         static void log(string msg)
         {
-            Console.WriteLine(DateTime.Now.ToShortTimeString() + " " + msg);
+            using (StreamWriter sw = File.AppendText(System.Environment.MachineName + ".log"))
+            {
+                sw.WriteLine(DateTime.Now.ToString() + " " + msg);
+            }
+        }
+
+        static void sharedLog(string msg)
+        {
+            using (StreamWriter sw = File.AppendText(logFile))
+            {
+                sw.WriteLine(DateTime.Now.ToShortTimeString() + " " + msg);
+            }
         }
 
         static void Main(string[] args)
         {
             // Check every so often for new files
-            log("Press a key to exit (after current frame is rendered).");
+            Console.WriteLine("Press a key to exit (after current frame is rendered).");
+            sharedLog(System.Environment.MachineName + " entering farm");
+            Timer cLog = new System.Timers.Timer(30000);
+            cLog.Elapsed += CLog_Elapsed;
+            cLog.Enabled = true;
             deleteOldLocks();
             do
             {
                 checkFiles();
                 System.Threading.Thread.Sleep(1000);
             } while (!Console.KeyAvailable);
+            sharedLog(System.Environment.MachineName + " leaving farm");
+            cLog.Enabled = false;
+        }
+
+        private static void CLog_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (File.Exists(logFile))
+            {
+                string nextLogFile = File.ReadAllText(logFile);
+                if (lastLogFile != "")
+                {
+                    if (nextLogFile != lastLogFile)
+                    {
+                        // Only spew out the new bits if this one is bigger than the last one
+                        // in case it got deleted
+                        if (nextLogFile.Length < lastLogFile.Length)
+                        {
+                            log("Ignoring smaller-than-previous logfile");
+                            lastLogFile = "";
+                        }
+                        string newBits = nextLogFile.Substring(lastLogFile.Length);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        foreach (string line in newBits.Split("\r\n".ToCharArray()))
+                        {
+                            if (line.Trim() != "")
+                                Console.WriteLine(line);
+                        }
+                        Console.ResetColor();
+                    }
+                }
+                lastLogFile = nextLogFile;
+            }
         }
 
         private static void deleteOldLocks()
         {
             var dir = new DirectoryInfo(".");
-            var locks = dir.EnumerateFiles("*_" + System.Environment.MachineName + ".lock");
+            var locks = dir.EnumerateFiles("*_" + System.Environment.MachineName + "_*.lock");
             if (locks.Count() > 0)
             {
                 log("Deleting some old lock files");
@@ -145,40 +194,46 @@ namespace Farm
                             TimeSpan timePerFrame = TimeSpan.FromTicks((long)(tookSoFar.Ticks / ((double)(doneFrames + 1))));
                             TimeSpan timeLeft = TimeSpan.FromTicks(timePerFrame.Ticks * (totFrames - doneFrames + 1));
                             DateTime eta = DateTime.Now + timeLeft;
-                            log("Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
-                            log("Time per frame: " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
+                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Have done " + doneFrames.ToString() + "/" + totFrames.ToString() + " in " + ToReadableString(tookSoFar));
+                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": Time per frame " + ToReadableString(timePerFrame) + ". ETA is " + eta.ToString());
                         }
-                        if (lockWorks(doingFrame))
+                        string lockFile = doingFrame.ToString() + "_" + System.Environment.MachineName + "_" + Path.GetFileNameWithoutExtension(iniFile.FullName) + ".lock";
+                        string lockFileWild = doingFrame.ToString() + "_*_" + Path.GetFileNameWithoutExtension(iniFile.FullName) + ".lock";
+                        if (lockWorks(doingFrame, lockFile, lockFileWild))
                         {
                             // Go ahead and render
+                            DateTime startTime = DateTime.Now;
+                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": " + System.Environment.MachineName + " starting frame " + doingFrame.ToString());
                             ProcessStartInfo cmdsi = new ProcessStartInfo(@"c:\Program Files\POV-Ray\v3.7\bin\pvengine.exe");
                             cmdsi.Arguments = '"' + iniFile.FullName + "\" /exit -sf" + doingFrame.ToString() + " -ef" + doingFrame.ToString();
                             Process cmd = Process.Start(cmdsi);
                             cmd.WaitForExit();
+                            TimeSpan took = DateTime.Now - startTime;
+                            sharedLog(Path.GetFileNameWithoutExtension(iniFile.FullName) + ": " + System.Environment.MachineName + " finished frame " + doingFrame.ToString() + " in " + ToReadableString(took));
                             System.Threading.Thread.Sleep(5000); // for dropbox sync
                         }
                         else
                         {
                             log("Failed to get a lock on frame");
                         }
-                        File.Delete(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock");
+                        File.Delete(lockFile);
                     }
                 }
             }
             return false;
         }
 
-        private static bool lockWorks(int doingFrame)
+        private static bool lockWorks(int doingFrame, string lockFile, string lockFileWild)
         {
             // Is it locked right now?
             var dir = new DirectoryInfo(".");
-            var locks = dir.EnumerateFiles(doingFrame.ToString() + "_*.lock");
+            var locks = dir.EnumerateFiles(lockFileWild);
             if (locks.Count() != 0)
                 return false;
             else
             {
                 // There isn't a lock - try making one and see if it's the only one that got made
-                File.Create(doingFrame.ToString() + "_" + System.Environment.MachineName + ".lock").Close();
+                File.Create(lockFile).Close();
                 System.Threading.Thread.Sleep(5000);
                 return locks.Count() == 1;
             }

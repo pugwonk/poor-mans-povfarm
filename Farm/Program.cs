@@ -52,6 +52,9 @@ namespace Farm
         {
             // Check every so often for new files
             Console.WriteLine("Press a key to exit (after current frame is rendered).");
+            if (File.Exists(logFile))
+                lastLogFile = File.ReadAllText(logFile);
+
             sharedLog(System.Environment.MachineName + " entering farm");
             Timer cLog = new System.Timers.Timer(30000);
             cLog.Elapsed += CLog_Elapsed;
@@ -68,11 +71,14 @@ namespace Farm
 
         private static void CLog_Elapsed(object sender, ElapsedEventArgs e)
         {
+            //Console.WriteLine("Processing global log");
             if (File.Exists(logFile))
             {
+                //Console.WriteLine("- File exists");
                 string nextLogFile = File.ReadAllText(logFile);
                 if (lastLogFile != "")
                 {
+                    //Console.WriteLine("- Prev iteration exists");
                     if (nextLogFile != lastLogFile)
                     {
                         // Only spew out the new bits if this one is bigger than the last one

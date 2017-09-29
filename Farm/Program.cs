@@ -34,6 +34,7 @@ namespace Farm
 
         static void log(string msg)
         {
+            return; // just not bothering writing these at the moment as they pile up when farm is not running anything
             using (StreamWriter sw = File.AppendText(System.Environment.MachineName + ".log"))
             {
                 sw.WriteLine(DateTime.Now.ToString() + " " + msg);
